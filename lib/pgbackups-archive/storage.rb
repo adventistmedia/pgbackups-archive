@@ -19,10 +19,12 @@ class PgbackupsArchive::Storage
   end
 
   def bucket
+    puts "Open bucket: [#{ENV["PGBACKUPS_BUCKET"]}]"
     connection.directories.get ENV["PGBACKUPS_BUCKET"]
   end
 
   def store
+    puts "Begin file upload [#{@file}]"
     bucket.files.create :key => @key, :body => @file, :public => false, :multipart_chunk_size => 5242880
   end
 

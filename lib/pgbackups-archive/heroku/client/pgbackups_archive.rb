@@ -36,6 +36,7 @@ class Heroku::Client::PgbackupsArchive
   end
 
   def archive
+    puts "Archive backup to S3 [#{key}]"
     PgbackupsArchive::Storage.new(key, file).store
   end
 
@@ -52,6 +53,10 @@ class Heroku::Client::PgbackupsArchive
 
   def use_latest_backup
     @pgbackup = @client.get_latest_backup
+
+    puts "Latest backup: [#{@pgbackup}]"
+
+    @pgbackup
   end
 
   def delete
@@ -59,6 +64,7 @@ class Heroku::Client::PgbackupsArchive
   end
 
   def download
+    puts "Download backup"
     File.open(temp_file, "wb") do |output|
       streamer = lambda do |chunk, remaining_bytes, total_bytes|
         output.write chunk
