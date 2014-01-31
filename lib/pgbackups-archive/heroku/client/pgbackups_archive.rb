@@ -22,6 +22,11 @@ class Heroku::Client::PgbackupsArchive
     backup.download
     backup.archive
     backup.delete
+
+  rescue => e
+    puts "PGBackup: #{@pgbackup.inspect}"
+
+    raise e
   end
 
   def initialize(attrs={})
