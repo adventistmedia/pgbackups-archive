@@ -7,7 +7,18 @@ class Heroku::Client::PgbackupsArchive
 
   def self.perform
     backup = new
-    backup.capture
+    
+    # If you're using the auto retention backups
+    # or some other process
+    # you can just ship the most recent backup
+    if ENV['USE_LATEST_BACKUP']
+      backup.use_latest_backup
+    
+    # Take a bespoke backup for this shipment
+    else
+      backup.capture
+
+    end
     backup.download
     backup.archive
     backup.delete
@@ -32,6 +43,10 @@ class Heroku::Client::PgbackupsArchive
       sleep 1
       @pgbackup = @client.get_transfer @pgbackup["id"]
     end
+  end
+
+  def use_latest_backup
+    @pgbackup = @client.get_latest_backup
   end
 
   def delete

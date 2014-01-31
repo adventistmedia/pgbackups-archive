@@ -4,18 +4,38 @@ require "heroku/client"
 describe Heroku::Client::PgbackupsArchive do
 
   describe "#self.perform" do
-    before do
-      Heroku::Client::PgbackupsArchive.expects(:new).returns(
-        mock(
-          :capture  => stub,
-          :download => stub,
-          :archive  => stub,
-          :delete   => stub
+
+    describe "when ENV['USE_LATEST_BACKUP'] is nil" do
+      before do
+        ENV['USE_LATEST_BACKUP'] = nil
+        Heroku::Client::PgbackupsArchive.expects(:new).returns(
+          mock(
+            :capture  => stub,
+            :download => stub,
+            :archive  => stub,
+            :delete   => stub
+          )
         )
-      )
+      end
+
+      it { Heroku::Client::PgbackupsArchive.perform }
     end
 
-    it { Heroku::Client::PgbackupsArchive.perform }
+    describe "when ENV['USE_LATEST_BACKUP'] is not nil" do
+      before do
+        ENV['USE_LATEST_BACKUP'] = 'true'
+        Heroku::Client::PgbackupsArchive.expects(:new).returns(
+          mock(
+            :use_latest_backup  => stub,
+            :download => stub,
+            :archive  => stub,
+            :delete   => stub
+          )
+        )
+      end
+
+      it { Heroku::Client::PgbackupsArchive.perform }
+    end
   end
 
   describe "An instance" do
@@ -47,6 +67,23 @@ describe Heroku::Client::PgbackupsArchive do
 
       it "should use a storage instance to store the archive" do
         backup.archive
+      end
+    end
+
+    describe "#use_latest_backup" do
+      let(:pgbackup) { { "finished_at" => "some-timestamp" } }
+
+      before do
+        backup.client.expects(:get_latest_backup).returns(pgbackup)
+      end
+
+      it "should return the latest backup" do
+        backup.use_latest_backup.must_equal pgbackup
+      end
+
+      it "should set the pgbackup instance variable to the latest backup" do
+        backup.use_latest_backup
+        backup.pgbackup.must_equal pgbackup
       end
     end
 
