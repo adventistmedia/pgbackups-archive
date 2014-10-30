@@ -55,6 +55,16 @@ class Heroku::Client::PgbackupsArchive
     @pgbackup = @client.get_latest_backup
 
     puts "Latest backup: [#{@pgbackup}]"
+    if @pgbackup['created_at']
+      created_at = DateTime.parse(@pgbackup['created_at'])
+      hours_since_creation = (Time.now.to_i - created_at.to_time.to_i) / 3600
+      puts "backup created #{hours_since_creation} hours ago"
+      puts "LATEST_BACKUP_MORE_THAN_24HR_OLD #{hours_since_creation > 24}"
+
+    else
+      puts "CREATED_AT timestamp not available. Skipping backup age check."
+
+    end
 
     @pgbackup
   end
