@@ -16,6 +16,7 @@ Gem::Specification.new do |s|
   s.add_dependency "fog",     ">= 1.4.0"
   s.add_dependency "heroku",  ">= 2.34.0"
   s.add_dependency "rake",    ">= 0.9.2.2"
+  s.add_dependency "gpgme",   "2.0.6"
 
   s.files         = `git ls-files`.split("\n")
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")

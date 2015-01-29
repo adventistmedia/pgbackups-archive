@@ -1,5 +1,6 @@
 require "heroku/client"
 require "tmpdir"
+require "gpgme"
 
 class Heroku::Client::PgbackupsArchive
 
@@ -136,14 +137,14 @@ class Heroku::Client::PgbackupsArchive
   def pgp_public_key
     return nil unless ENV['KEY_DOMAIN'] and ENV['PGP_PUBLIC_KEY']
 
-    public_keys = GPGME::Key.find :public, ENV['KEY_DOMAIN']
+    public_keys = ::GPGME::Key.find :public, ENV['KEY_DOMAIN']
 
     # If the NCC key doesn't exist in the public key-chain then lets add it
     if public_keys.empty?
       puts "Importing Public Key into GPG Keychain"
 
-      GPGME::Key.import(ENV['PGP_PUBLIC_KEY'])
-      public_keys = GPGME::Key.find :public, ENV['KEY_DOMAIN']
+      ::GPGME::Key.import(ENV['PGP_PUBLIC_KEY'])
+      public_keys = ::GPGME::Key.find :public, ENV['KEY_DOMAIN']
     end
 
     public_keys.first
