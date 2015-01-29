@@ -7,19 +7,20 @@ class Heroku::Client::PgbackupsArchive
 
   def self.perform
     backup = new
-    
+
     # If you're using the auto retention backups
     # or some other process
     # you can just ship the most recent backup
     if ENV['USE_LATEST_BACKUP']
       backup.use_latest_backup
-    
+
     # Take a bespoke backup for this shipment
     else
       backup.capture
 
     end
     backup.download
+    backup.encrypt
     backup.archive
     backup.delete
 
@@ -70,6 +71,10 @@ class Heroku::Client::PgbackupsArchive
   end
 
   def delete
+    if pgp_public_key
+      File.delete pgp_temp_file
+    end
+
     File.delete temp_file
   end
 
@@ -80,6 +85,12 @@ class Heroku::Client::PgbackupsArchive
         output.write chunk
       end
       Excon.get(@pgbackup["public_url"], :response_block => streamer)
+    end
+  end
+
+  def encrypt
+    if public_key = pgp_public_key
+      sh "gpg -o #{pgp_temp_file} -r #{public_key.uids.first.email} -e #{temp_file}"
     end
   end
 
@@ -94,12 +105,20 @@ class Heroku::Client::PgbackupsArchive
   end
 
   def file
-    File.open temp_file, "r"
+    if pgp_public_key
+      File.open pgp_temp_file, "r"
+    else
+      File.open temp_file, "r"
+    end
   end
 
   def key
-    ["pgbackups", environment, @pgbackup["finished_at"]
+    _key = ["pgbackups", environment, @pgbackup["finished_at"]
       .gsub(/\/|\:|\.|\s/, "-").concat(".dump")].compact.join("/")
+
+    _key = _key + '.pgp' if pgp_public_key
+
+    _key
   end
 
   def pgbackups_url
@@ -108,6 +127,26 @@ class Heroku::Client::PgbackupsArchive
 
   def temp_file
     "#{Dir.tmpdir}/#{URI(@pgbackup['public_url']).path.split('/').last}"
+  end
+
+  def pgp_temp_file
+    temp_file + '.pgp'
+  end
+
+  def pgp_public_key
+    return nil unless ENV['KEY_DOMAIN'] and ENV['PGP_PUBLIC_KEY']
+
+    public_keys = GPGME::Key.find :public, ENV['KEY_DOMAIN']
+
+    # If the NCC key doesn't exist in the public key-chain then lets add it
+    if public_keys.empty?
+      puts "Importing Public Key into GPG Keychain"
+
+      GPGME::Key.import(ENV['PGP_PUBLIC_KEY'])
+      public_keys = GPGME::Key.find :public, ENV['KEY_DOMAIN']
+    end
+
+    public_keys.first
   end
 
 end
