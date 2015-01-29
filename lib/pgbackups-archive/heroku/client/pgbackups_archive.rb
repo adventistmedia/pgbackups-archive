@@ -92,7 +92,7 @@ class Heroku::Client::PgbackupsArchive
 
   def encrypt
     if public_key = pgp_public_key
-      system "gpg -o #{pgp_temp_file} -r #{public_key.uids.first.email} -e #{temp_file}"
+      system "gpg --trust-mode always -o #{pgp_temp_file} -r #{public_key.uids.first.email} -e #{temp_file}"
     end
   end
 
