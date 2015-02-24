@@ -25,11 +25,21 @@ class PgbackupsArchive::Storage
 
   def store
     puts "Begin file upload [#{@file}]"
-    bucket.files.create :key => @key, :body => @file, :public => false, :multipart_chunk_size => 5242880
+    begin
+      bucket.files.create :key => @key, :body => @file, :public => false, :multipart_chunk_size => 5242880
+    rescue Exception => e
+      STDERR.puts "Problem uploading to S3!: #{e.message}"
+      STDERR.puts e.backtrace.join("\n")
+    end
 
     if rackspace_directory = get_rackspace_directory
       puts "Begin RACKSPACE file upload [#{@file}]"
-      rackspace_directory.files.create(:key => @key, :body => @file, :multipart_chunk_size => 5242880)
+      begin
+        rackspace_directory.files.create(:key => @key, :body => @file, :multipart_chunk_size => 5242880)
+      rescue Exception => e
+        STDERR.puts "Problem uploading to Rackspace!: #{e.message}"
+        STDERR.puts e.backtrace.join("\n")
+      end
     end
 
   end
