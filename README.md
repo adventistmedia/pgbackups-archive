@@ -1,51 +1,66 @@
 # pgbackups-archive
 
-A means of automating Heroku's pgbackups and archiving them to Amazon S3 via the `fog` gem.
+[![Gem Version](https://badge.fury.io/rb/pgbackups-archive.svg)](http://badge.fury.io/rb/pgbackups-archive)
+[![Code Climate](https://codeclimate.com/github/kjohnston/pgbackups-archive/badges/gpa.svg)](https://codeclimate.com/github/kjohnston/pgbackups-archive)
+
+A means of automating Heroku PGBackups and archiving them to Amazon S3.
+
+## Upgrade Alert
+
+As of v1.0.0, `pgbackups-archive` works with the new [Heroku PGBackups](https://devcenter.heroku.com/articles/heroku-postgres-backups) service, which replaced the older [PG Backups](https://devcenter.heroku.com/articles/pgbackups) add-on.
+
+If you're still using an older version of `pgbackups-archive`, it's time to upgrade!
+
+Read more about this transition in Heroku's offerings on the Heroku Blog: [PG Backups Levels Up](https://blog.heroku.com/archives/2015/3/11/pgbackups-levels-up)
+
+Please note that the environment variables that need to be defined have changed with
+v1.0.0.
 
 ## Overview
 
-The `pgbackups:archive` rake task this gem provides will capture a pgbackup, wait for it to complete, then store it within the Amazon S3 bucket you specify.  This rake task can be scheduled via the Heroku Scheduler, thus producing automated, offsite, backups.
+The `pgbackups:archive` rake task this gem provides will capture a Heroku PGBackup, wait for it to complete, then store it within the Amazon S3 bucket you specify.  This rake task can be scheduled via the Heroku Scheduler, thus producing automated, offsite, backups.
 
-The rake task will use pgbackups' `--expire` flag to remove the oldest pgbackup Heroku is storing when there are no free slots remaining.
+This gem doesn't interfere with or utilze automated backups, so feel free to schedule those with the `pg:backups schedule` command as you desire.
+
+You can configure how many manual backups (created by you or this gem) you'd like to keep at the Heroku PGBackups level to ensure there is always space to capture a new backup.
 
 You can configure retention settings at the Amazon S3 bucket level from within the AWS Console if you like.
 
 ## Use
 
-### Determine which Heroku app to run the task under
-
-#### Option 1 - Add `pgbackups-archive` to your existing application
+### Install the gem
 
 Add the gem to your Gemfile and bundle:
 
     gem "pgbackups-archive"
     bundle install
 
-#### Option 2 - Add `pgbackups-archive` to a standalone application
+### Install Heroku Scheduler add-on
 
-* Create a new Heroku application to dedicate to backing up your database.
-* Clone [pgackups-archive-app](https://github.com/kbaum/pgbackups-archive-app) push to your new Heroku app.
-* Add a `PGBACKUPS_DATABASE_URL` environment variable to your backup app that points to your main app's `DATABASE_URL`, or other follower URL, so that `pgbackups-archive` knows which database to backup.
-
-This option is generally recommended over Option 1, particularly if your application has larger slug size and therefore higher memory requirements.  This is because the streaming download & upload of the backup file will utilize a certain amount of memory beyond what an instance of your application uses and if you're close to the threshold of your Dyno size as it is, this increment could put the instance over the limit and cause it to encounter a memory allocation error.  By running a dedicated Heroku app to run `pgbackups-archive` the task will have ample room at the 1X Dyno level to stream the backup files.
-
-### Install Heroku addons
-
-    heroku addons:add pgbackups
     heroku addons:add scheduler:standard
 
-### Apply environment variables
+### Setup an AWS IAM user, S3 bucket and policy
 
+A good security measure would be to use a dedicated set of AWS credentials with a security policy only allowing access to the bucket you're specifying.  See this Pro Tip on [Assigning an AWS IAM user access to a single S3 bucket](http://coderwall.com/p/dwhlma).
+
+### Apply Environment Variables
+
+    # Required
+    heroku config:add HEROKU_API_KEY="collaborator-api-key"
+    heroku config:add PGBACKUPS_APP="myapp"
     heroku config:add PGBACKUPS_AWS_ACCESS_KEY_ID="XXX"
     heroku config:add PGBACKUPS_AWS_SECRET_ACCESS_KEY="YYY"
     heroku config:add PGBACKUPS_BUCKET="myapp-backups"
     heroku config:add PGBACKUPS_REGION="us-west-2"
-    heroku config:add PGBACKUPS_DATABASE_URL="your main app's DATABASE_URL or other follower URL here"
 
-* `PGBACKUPS_DATABASE_URL` can be set either to `DATABASE_URL` or a follower database you setup if you would prefer to not backup from your primary databse for performance reasons.
-* If `PGBACKUPS_DATABASE_URL` is omitted, `pgbackups-archive` will default to the `DATABASE_URL` of the Heroku app it runs under.  This setting will be required going forward, so you'll want to have it set.
-* As mentioned above, the `PGBACKUPS_DATABASE_URL` is mandatory if you are the using Option 2 above.
-* A good security measure would be to use a dedicated set of AWS credentials with a security policy only allowing access to the bucket you're specifying.  See this Pro Tip on [Assigning an AWS IAM user access to a single S3 bucket](http://coderwall.com/p/dwhlma).
+    # Optional: If you wish to backup a database other than the one that
+    # DATABASE_URL points to, set this to the name of the variable for that
+    # database (useful for follower databases).
+    heroku config:add PGBACKUPS_DATABASE="HEROKU_POSTGRESQL_BLACK_URL"
+
+    # Optional: If you wish to customize the number of manual backups kept at
+    # the Heroku PGBackups level, set this.
+    heroku config:add PGBACKUPS_KEEP="30"
 
 ### Add the rake task to scheduler
 
@@ -65,7 +80,7 @@ require "pgbackups-archive"
 
 ## Testing
 
-This gem uses [thincloud-test](https://github.com/newleaders/thincloud-test) to manage its test suite configuration.  This provides MiniTest, Guard and friends.  To run the test suite, use the `guard` command and save a file or hit enter to run the full suite.
+To run the test suite, use the `guard` command and save a file or hit enter to run the full suite.
 
 Use the [pgbackups-archive-dummy](https://github.com/kjohnston/pgbackups-archive-dummy) test harness to setup a dummy database on Heroku to test against.
 
@@ -75,11 +90,11 @@ I shouldn't have to say this, but I will.  Your backups are your responsibility.
 
 ## Contributing
 
-1. [Fork it](https://github.com/kjohnston/pgbackups-archive/fork_select)
+1. Fork it
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Added some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
-5. [Create a Pull Request](https://github.com/kjohnston/pgbackups-archive/pull/new)
+5. Create a Pull Request
 
 ## Contributors
 
@@ -92,8 +107,13 @@ Many thanks go to the following who have contributed to making this gem even bet
 * [Karl Baum (@kbaum)](https://github.com/kbaum)
   * Custom setting for database to backup.
   * Streaming support to handle large backup files.
+* [Conroy Whitney (@conroywhitney)](https://github.com/conroywhitney)
+  * Use S3 server-side encryption by default
+* [Chris Gaffney (@gaffneyc)](https://github.com/gaffneyc)
+  * Switch from fog to fog-aws.
+  * Gem config improvements.
 
 ## License
 
 * Freely distributable and licensed under the [MIT license](http://kjohnston.mit-license.org/license.html).
-* Copyright (c) 2012-2013 Kenny Johnston [![endorse](http://api.coderwall.com/kjohnston/endorsecount.png)](http://coderwall.com/kjohnston)
+* Copyright (c) 2012-2015 Kenny Johnston [![endorse](http://api.coderwall.com/kjohnston/endorsecount.png)](http://coderwall.com/kjohnston)
