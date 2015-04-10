@@ -46,8 +46,8 @@ class PgbackupsArchive::Job
     backup = get_latest_backup
 
     puts "Latest backup: [#{backup}]"
-    if backup['created_at']
-      created_at = DateTime.parse(backup['created_at'])
+    if backup[:created_at]
+      created_at = DateTime.parse(backup[:created_at])
       hours_since_creation = (Time.now.to_i - created_at.to_time.to_i) / 3600
       puts "backup created #{hours_since_creation} hours ago"
       puts "LATEST_BACKUP_MORE_THAN_24HR_OLD #{hours_since_creation > 24}"
