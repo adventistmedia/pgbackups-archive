@@ -121,8 +121,6 @@ class PgbackupsArchive::Job
 
     latest_transfer = transfers.last
 
-    puts latest_transfer.inspect
-
     latest_transfer
   end
 
