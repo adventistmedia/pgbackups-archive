@@ -2,6 +2,7 @@ require "heroku/command/pg"
 require "heroku/command/pg_backups"
 require "heroku/api"
 require "tmpdir"
+require "gpgme"
 
 class PgbackupsArchive::Job
 
@@ -18,9 +19,19 @@ class PgbackupsArchive::Job
   end
 
   def call
-    expire
-    capture
+
+    if ENV['USE_LATEST_BACKUP']
+      use_latest_backup
+
+    # Take a bespoke backup for this shipment
+    else
+      expire
+      capture
+
+    end
+
     download
+    encrypt
     archive
     delete
   end
@@ -31,15 +42,30 @@ class PgbackupsArchive::Job
     end
   end
 
+  def use_latest_backup
+    backup = get_latest_backup
+
+    puts "Latest backup: [#{backup}]"
+    if backup['created_at']
+      created_at = DateTime.parse(backup['created_at'])
+      hours_since_creation = (Time.now.to_i - created_at.to_time.to_i) / 3600
+      puts "backup created #{hours_since_creation} hours ago"
+      puts "LATEST_BACKUP_MORE_THAN_24HR_OLD #{hours_since_creation > 24}"
+
+    else
+      puts "CREATED_AT timestamp not available. Skipping backup age check."
+
+    end
+
+    use_backup( backup )
+  end
+
   def capture
     attachment = client.send(:generate_resolver).resolve(database)
     backup = client.send(:hpg_client, attachment).backups_capture
     client.send(:poll_transfer, "backup", backup[:uuid])
 
-    self.created_at = backup[:created_at]
-
-    self.backup_url = Heroku::Client::HerokuPostgresqlApp
-      .new(ENV["PGBACKUPS_APP"]).transfers_public_url(backup[:num])[:url]
+    use_backup( backup )
   end
 
   def delete
@@ -56,6 +82,12 @@ class PgbackupsArchive::Job
       Excon.get backup_url,
         :response_block    => streamer,
         :omit_default_port => true
+    end
+  end
+
+  def encrypt
+    if public_key = pgp_public_key
+      system "gpg --trust-mode always -o #{pgp_temp_file} -r #{public_key.uids.first.email} -e #{temp_file}"
     end
   end
 
@@ -76,6 +108,24 @@ class PgbackupsArchive::Job
 
   private
 
+  def use_backup(backup)
+    self.created_at = backup[:created_at]
+
+    self.backup_url = Heroku::Client::HerokuPostgresqlApp
+      .new(ENV["PGBACKUPS_APP"]).transfers_public_url(backup[:num])[:url]
+  end
+
+  def get_latest_backup
+    transfers = client.send(:hpg_app_client, ENV["PGBACKUPS_APP"]).
+                       transfers.sort_by { |b| b[:created_at] }
+
+    latest_transfer = transfers.last
+
+    puts latest_transfer.inspect
+
+    latest_transfer
+  end
+
   def expire_backup(backup_num)
     client.send(:hpg_app_client, ENV["PGBACKUPS_APP"])
       .transfers_delete(backup_num)
@@ -90,12 +140,20 @@ class PgbackupsArchive::Job
   end
 
   def file
-    File.open(temp_file, "r")
+    if pgp_public_key
+      File.open pgp_temp_file, "r"
+    else
+      File.open temp_file, "r"
+    end
   end
 
   def key
     timestamp = created_at.gsub(/\/|\:|\.|\s/, "-").concat(".dump")
-    ["pgbackups", environment, timestamp].compact.join("/")
+    _key = ["pgbackups", environment, timestamp].compact.join("/")
+
+    _key = _key + '.pgp' if pgp_public_key
+
+    _key
   end
 
   def pgbackups_to_keep
@@ -104,6 +162,26 @@ class PgbackupsArchive::Job
 
   def temp_file
     "#{Dir.tmpdir}/pgbackup"
+  end
+
+  def pgp_temp_file
+    temp_file + '.pgp'
+  end
+
+  def pgp_public_key
+    return nil unless ENV['KEY_DOMAIN'] and ENV['PGP_PUBLIC_KEY']
+
+    public_keys = ::GPGME::Key.find :public, ENV['KEY_DOMAIN']
+
+    # If the NCC key doesn't exist in the public key-chain then lets add it
+    if public_keys.empty?
+      puts "Importing Public Key into GPG Keychain"
+
+      ::GPGME::Key.import(ENV['PGP_PUBLIC_KEY'])
+      public_keys = ::GPGME::Key.find :public, ENV['KEY_DOMAIN']
+    end
+
+    public_keys.first
   end
 
 end

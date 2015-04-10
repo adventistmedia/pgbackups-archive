@@ -19,8 +19,9 @@ Gem::Specification.new do |s|
   # Heroku PGBackups launched when 3.28.6 shipped (replacing older PG Backups)
   s.add_runtime_dependency "heroku", ">= 3.28.6"
 
-  s.add_runtime_dependency "fog-aws"
+  s.add_runtime_dependency "fog"
   s.add_runtime_dependency "rake"
+  s.add_runtime_dependency "gpgme",   "2.0.6"
 
   s.add_development_dependency "bundler"
   s.add_development_dependency "guard",          "~> 2.12", "~> 2.12.5"
