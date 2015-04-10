@@ -1,4 +1,4 @@
-require "fog/aws"
+require "fog"
 require "open-uri"
 
 class PgbackupsArchive::Storage
