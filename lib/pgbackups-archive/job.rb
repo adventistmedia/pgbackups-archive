@@ -176,7 +176,7 @@ class PgbackupsArchive::Job
     if !found_public_keys
       puts "Importing Public Key into GPG Keychain"
 
-      system "gpg --import \"#{PGP_PUBLIC_KEY}\""
+      system "gpg --import \"#{ENV['PGP_PUBLIC_KEY']}\""
       found_public_keys = system "gpg --list-keys #{ENV['KEY_EMAIL']}"
     end
 
