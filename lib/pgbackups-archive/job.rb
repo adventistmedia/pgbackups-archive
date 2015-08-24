@@ -176,7 +176,12 @@ class PgbackupsArchive::Job
     if !found_public_keys
       puts "Importing Public Key into GPG Keychain"
 
-      system "gpg --import \"#{ENV['PGP_PUBLIC_KEY']}\""
+      # Write ENV['PGP_PUBLIC_KEY'] to disk
+      File.open('/tmp/public.key', 'w') do |f|
+        f.write(ENV['PGP_PUBLIC_KEY'])
+      end
+
+      system "gpg --import '/tmp/public.key'"
       found_public_keys = system "gpg --list-keys #{ENV['KEY_EMAIL']}"
     end
 
