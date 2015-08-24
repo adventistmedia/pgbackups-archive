@@ -1,6 +1,5 @@
 require "heroku/client"
 require "tmpdir"
-require "gpgme"
 require "rake"
 
 class Heroku::Client::PgbackupsArchive

@@ -2,7 +2,6 @@ require "heroku/command/pg"
 require "heroku/command/pg_backups"
 require "heroku/api"
 require "tmpdir"
-require "gpgme"
 
 class PgbackupsArchive::Job
 
@@ -86,8 +85,8 @@ class PgbackupsArchive::Job
   end
 
   def encrypt
-    if public_key = pgp_public_key
-      system "gpg --trust-mode always -o #{pgp_temp_file} -r #{public_key.uids.first.email} -e #{temp_file}"
+    if pgp_public_key
+      system "gpg --trust-mode always -o #{pgp_temp_file} -r #{ENV['KEY_EMAIL']} -e #{temp_file}"
     end
   end
 
@@ -167,19 +166,21 @@ class PgbackupsArchive::Job
   end
 
   def pgp_public_key
-    return nil unless ENV['KEY_DOMAIN'] and ENV['PGP_PUBLIC_KEY']
+    return nil unless ENV['KEY_EMAIL'] and ENV['PGP_PUBLIC_KEY']
 
-    public_keys = ::GPGME::Key.find :public, ENV['KEY_DOMAIN']
+    puts "Looking for #{ENV['KEY_EMAIL']} public key"
+    found_public_keys = system "gpg --list-keys #{ENV['KEY_EMAIL']}"
 
-    # If the NCC key doesn't exist in the public key-chain then lets add it
-    if public_keys.empty?
+
+    # If the key doesn't exist in the public key-chain then lets add it
+    if !found_public_keys
       puts "Importing Public Key into GPG Keychain"
 
-      ::GPGME::Key.import(ENV['PGP_PUBLIC_KEY'])
-      public_keys = ::GPGME::Key.find :public, ENV['KEY_DOMAIN']
+      system "gpg --import \"#{PGP_PUBLIC_KEY}\""
+      found_public_keys = system "gpg --list-keys #{ENV['KEY_EMAIL']}"
     end
 
-    public_keys.first
+    found_public_keys
   end
 
 end
