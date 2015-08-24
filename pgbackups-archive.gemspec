@@ -21,7 +21,7 @@ Gem::Specification.new do |s|
 
   s.add_runtime_dependency "fog"
   s.add_runtime_dependency "rake"
-  s.add_runtime_dependency "gpgme",   "2.0.9"
+  # s.add_runtime_dependency "gpgme",   "2.0.9"
 
   s.add_development_dependency "bundler"
   s.add_development_dependency "guard",          "~> 2.12", "~> 2.12.5"

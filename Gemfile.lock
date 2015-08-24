@@ -3,7 +3,6 @@ PATH
   specs:
     pgbackups-archive (1.0.1)
       fog
-      gpgme (= 2.0.9)
       heroku (>= 3.28.6)
       rake
 
@@ -141,8 +140,6 @@ GEM
       fog-core
       nokogiri (~> 1.5, >= 1.5.11)
     formatador (0.2.5)
-    gpgme (2.0.9)
-      mini_portile (>= 0.5.0)
     guard (2.12.9)
       formatador (>= 0.2.4)
       listen (>= 2.7, <= 4.0)
@@ -259,3 +256,6 @@ DEPENDENCIES
   mocha (~> 1.1, >= 1.1.0)
   pgbackups-archive!
   simplecov (~> 0.9, >= 0.9.1)
+
+BUNDLED WITH
+   1.10.6
