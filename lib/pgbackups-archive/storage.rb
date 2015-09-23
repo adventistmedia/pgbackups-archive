@@ -65,7 +65,7 @@ class PgbackupsArchive::Storage
         end
 
         # write manifest file
-        service.put_object_manifest(ENV['RACKSPACE_CONTAINER_NAME'], @file, 'X-Object-Manifest' => "#{ENV['RACKSPACE_CONTAINER_NAME']}/#{@key}/")
+        service.put_object_manifest(ENV['RACKSPACE_CONTAINER_NAME'], @key, 'X-Object-Manifest' => "#{ENV['RACKSPACE_CONTAINER_NAME']}/#{@key}/")
       rescue Exception => e
         STDERR.puts "Problem uploading to Rackspace!: #{e.message}"
         STDERR.puts e.backtrace.join("\n")
