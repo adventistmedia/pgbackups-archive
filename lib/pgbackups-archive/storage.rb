@@ -35,7 +35,37 @@ class PgbackupsArchive::Storage
     if rackspace_directory = get_rackspace_directory
       puts "Begin RACKSPACE file upload [#{@file}]"
       begin
-        rackspace_directory.files.create(:key => @key, :body => @file, :multipart_chunk_size => 5242880)
+        # old way. doesn't support files > 5GB
+        #rackspace_directory.files.create(:key => @key, :body => @file, :multipart_chunk_size => 5242880)
+
+        # New way supports files up to 5TB (only 1,000 5GB segments are allowed)
+        SEGMENT_LIMIT = 5368709119.0  # 5GB -1
+        BUFFER_SIZE = 1024 * 1024 # 1MB
+
+        service = connect_rackspace
+
+        File.open(@file) do |f|
+          segment = 0
+          until file.eof?
+            segment += 1
+            offset = 0
+
+            # upload segment to cloud files
+            segment_suffix = segment.to_s.rjust(10, '0')
+            service.put_object(ENV['RACKSPACE_CONTAINER_NAME'], "#{@file}/#{segment_suffix}", nil) do
+              if offset <= SEGMENT_LIMIT - BUFFER_SIZE
+                buf = file.read(BUFFER_SIZE).to_s
+                offset += buf.size
+                buf
+              else
+                ''
+              end
+            end
+          end
+        end
+
+        # write manifest file
+        service.put_object_manifest(ENV['RACKSPACE_CONTAINER_NAME'], @file, 'X-Object-Manifest' => "#{ENV['RACKSPACE_CONTAINER_NAME']}/#{@file}/")
       rescue Exception => e
         STDERR.puts "Problem uploading to Rackspace!: #{e.message}"
         STDERR.puts e.backtrace.join("\n")
