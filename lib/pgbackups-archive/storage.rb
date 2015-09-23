@@ -90,7 +90,11 @@ class PgbackupsArchive::Storage
         :rackspace_username  => ENV['RACKSPACE_USER_NAME'], # Your Rackspace Username
         :rackspace_api_key   => ENV['RACKSPACE_API'],       # Your Rackspace API key
         :rackspace_region    => :ord,                # Defaults to :dfw
-        :connection_options  => {}                   # Optional
+        :connection_options  => { # Optional
+          :connect_timeout => 300, # Five minutes
+          :read_timeout => 300, # Five minutes
+          :write_timeout => 300 # Five minutes
+        }
     })
   end
 
