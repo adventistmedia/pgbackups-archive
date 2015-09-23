@@ -46,7 +46,7 @@ class PgbackupsArchive::Storage
 
         File.open(@file) do |f|
           segment = 0
-          until file.eof?
+          until f.eof?
             segment += 1
             offset = 0
 
@@ -54,7 +54,7 @@ class PgbackupsArchive::Storage
             segment_suffix = segment.to_s.rjust(10, '0')
             service.put_object(ENV['RACKSPACE_CONTAINER_NAME'], "#{@file}/#{segment_suffix}", nil) do
               if offset <= SEGMENT_LIMIT - BUFFER_SIZE
-                buf = file.read(BUFFER_SIZE).to_s
+                buf = f.read(BUFFER_SIZE).to_s
                 offset += buf.size
                 buf
               else
