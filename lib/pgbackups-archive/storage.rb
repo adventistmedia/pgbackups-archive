@@ -52,7 +52,7 @@ class PgbackupsArchive::Storage
 
             # upload segment to cloud files
             segment_suffix = segment.to_s.rjust(10, '0')
-            service.put_object(ENV['RACKSPACE_CONTAINER_NAME'], "#{@file}/#{segment_suffix}", nil) do
+            service.put_object(ENV['RACKSPACE_CONTAINER_NAME'], "#{@key}/#{segment_suffix}", nil) do
               if offset <= SEGMENT_LIMIT - BUFFER_SIZE
                 buf = f.read(BUFFER_SIZE).to_s
                 offset += buf.size
@@ -65,7 +65,7 @@ class PgbackupsArchive::Storage
         end
 
         # write manifest file
-        service.put_object_manifest(ENV['RACKSPACE_CONTAINER_NAME'], @file, 'X-Object-Manifest' => "#{ENV['RACKSPACE_CONTAINER_NAME']}/#{@file}/")
+        service.put_object_manifest(ENV['RACKSPACE_CONTAINER_NAME'], @file, 'X-Object-Manifest' => "#{ENV['RACKSPACE_CONTAINER_NAME']}/#{@key}/")
       rescue Exception => e
         STDERR.puts "Problem uploading to Rackspace!: #{e.message}"
         STDERR.puts e.backtrace.join("\n")
