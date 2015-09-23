@@ -23,6 +23,9 @@ class PgbackupsArchive::Storage
     connection.directories.get ENV["PGBACKUPS_BUCKET"]
   end
 
+  # For Rackspace
+  SEGMENT_LIMIT = 5368709119.0  # 5GB -1
+  BUFFER_SIZE = 1024 * 1024 # 1MB
   def store
     puts "Begin file upload [#{@file}]"
     begin
@@ -39,9 +42,6 @@ class PgbackupsArchive::Storage
         #rackspace_directory.files.create(:key => @key, :body => @file, :multipart_chunk_size => 5242880)
 
         # New way supports files up to 5TB (only 1,000 5GB segments are allowed)
-        SEGMENT_LIMIT = 5368709119.0  # 5GB -1
-        BUFFER_SIZE = 1024 * 1024 # 1MB
-
         service = connect_rackspace
 
         File.open(@file) do |f|
