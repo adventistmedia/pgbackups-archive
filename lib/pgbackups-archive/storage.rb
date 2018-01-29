@@ -29,7 +29,7 @@ class PgbackupsArchive::Storage
   def store
     puts "Begin file upload [#{@file}]"
     begin
-      bucket.files.create :key => @key, :body => @file, :public => false, :multipart_chunk_size => 5242880
+      bucket.files.create :key => @key, :body => @file, :public => false, :multipart_chunk_size => (ENV['AWS_CHUNK_SIZE'] || 5242880).to_i
     rescue Exception => e
       STDERR.puts "Problem uploading to S3!: #{e.message}"
       STDERR.puts e.backtrace.join("\n")

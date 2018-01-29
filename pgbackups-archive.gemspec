@@ -17,7 +17,7 @@ Gem::Specification.new do |s|
   s.test_files = Dir["test/**/*"]
 
   # Heroku PGBackups launched when 3.28.6 shipped (replacing older PG Backups)
-  s.add_runtime_dependency "heroku", ">= 3.28.6"
+  s.add_runtime_dependency "heroku", "~> 3.32.0"
 
   s.add_runtime_dependency "fog"
   s.add_runtime_dependency "rake"
