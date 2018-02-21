@@ -12,7 +12,7 @@ class Heroku::Client::PgbackupsArchive
     # If you're using the auto retention backups
     # or some other process
     # you can just ship the most recent backup
-    if ENV['USE_LATEST_BACKUP']
+    if ENV['PGBACKUPS_USE_LATEST_BACKUP']
       backup.use_latest_backup
 
     # Take a bespoke backup for this shipment
